@@ -1,0 +1,64 @@
+﻿@page "/"
+@using KritischeRuimteHostedPoc.Shared
+
+<PageTitle>Index</PageTitle>
+
+
+
+<div class="row">
+    <div class="col-5">
+        <div class="mb-3">
+            <label class="form-label">Je naam</label>
+            <input @bind="Formulier.Name" class="form-control" placeholder="je naam hier">
+        </div>
+      @*  <div class="mb-3">
+            <label class="form-label">Je geboortedatum</label>
+            <input type="date" @bind="Formulier.DateOfBirth" class="form-control">
+        </div>*@
+
+        @if (signature is not null)
+        {
+            <SignaturePad @ref="signature"
+                      UsedInModal="false"
+                      MinWidth="300"
+                      MinHeight="300">
+                <SignaturePadFooter FooterDirective="@("Hier tekenen a.u.b")" />
+            </SignaturePad>
+        }
+
+        <div class="btn-group mt-4">
+
+            <button class="btn btn-primary" @onclick="@(() => save() )">send</button>
+            <button class="btn btn-secondary" @onclick="@(() => signature!.Clear() )">clear</button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(downloadUir))
+        {
+            <div class="m-5 p-5 border">
+                <a target="_blank" href="@downloadUir">hier de pdf downloaden</a>
+            </div>
+        }
+    </div>
+
+
+</div>
+
+
+
+
+@code {
+
+    public FormulierModel Formulier { get; set; } = new();
+
+    string downloadUir = string.Empty;
+
+    [Inject] NavigationManager navigationManager { get; set; } = default!;
+    [Inject] KritischeRuimteHostedPoc.Client.Services.IPdfService pdfService { get; set; } = default!;
+    SignaturePad signature = new();
+    async Task save()
+    {
+        downloadUir = "";
+        Formulier.signatureString = await signature.ToDataURL(SignaturePad.SupportedSaveAsTypes.png);
+        downloadUir = await pdfService.CreatePdf(new CreatePdfRequest(Formulier.Name, Formulier.signatureString));
+    }
+}
